@@ -5,14 +5,23 @@ import { storageService } from './services/storageService';
 import AuthForm from './components/AuthForm';
 import BookCard from './components/BookCard';
 import BookForm from './components/BookForm';
+import BookDetail from './components/BookDetail';
+
+type SortField = 'title' | 'author' | 'createdAt';
+type SortOrder = 'asc' | 'desc';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [books, setBooks] = useState<Book[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingBook, setEditingBook] = useState<Book | null>(null);
+  const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [filter, setFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Stati per l'ordinamento
+  const [sortBy, setSortBy] = useState<SortField>('createdAt');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
 
   useEffect(() => {
     const sessionUser = storageService.getSession();
@@ -38,12 +47,15 @@ const App: React.FC = () => {
     storageService.updateBook(updatedBook);
     setBooks(books.map(b => b.id === updatedBook.id ? updatedBook : b));
     setEditingBook(null);
+    // Se il libro selezionato è quello che abbiamo appena aggiornato, aggiorniamo anche lui
+    if (selectedBook?.id === updatedBook.id) setSelectedBook(updatedBook);
   };
 
   const deleteBook = (id: string) => {
     if (confirm("Sei sicuro di voler rimuovere questo libro dalla tua libreria?")) {
       storageService.deleteBook(id);
       setBooks(books.filter(b => b.id !== id));
+      if (selectedBook?.id === id) setSelectedBook(null);
     }
   };
 
@@ -51,14 +63,28 @@ const App: React.FC = () => {
     setEditingBook(book);
   };
 
-  const filteredBooks = useMemo(() => {
-    return books.filter(book => {
+  const processedBooks = useMemo(() => {
+    // 1. Filtro
+    let result = books.filter(book => {
       const matchesUser = filter === 'all' || (filter === 'mine' && book.userId === user?.id);
       const matchesSearch = book.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
                            book.author.toLowerCase().includes(searchQuery.toLowerCase());
       return matchesUser && matchesSearch;
     });
-  }, [books, filter, user, searchQuery]);
+
+    // 2. Ordinamento
+    result.sort((a, b) => {
+      let comparison = 0;
+      if (sortBy === 'createdAt') {
+        comparison = a.createdAt - b.createdAt;
+      } else {
+        comparison = a[sortBy].localeCompare(b[sortBy], 'it', { sensitivity: 'base' });
+      }
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
+
+    return result;
+  }, [books, filter, user, searchQuery, sortBy, sortOrder]);
 
   if (!user) {
     return <AuthForm onAuthSuccess={setUser} />;
@@ -131,43 +157,71 @@ const App: React.FC = () => {
             </p>
           </div>
           
-          <div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto">
-            <div className="bg-white p-2 rounded-[1.5rem] border border-slate-100 flex gap-1 shadow-sm w-full sm:w-auto">
+          <div className="flex flex-col items-center gap-6 w-full lg:w-auto">
+            {/* Pannello Controlli */}
+            <div className="flex flex-wrap items-center gap-4 w-full justify-center lg:justify-end">
+              
+              {/* Filtro Proprietà */}
+              <div className="bg-white p-1.5 rounded-[1.5rem] border border-slate-100 flex gap-1 shadow-sm">
+                <button 
+                  onClick={() => setFilter('all')}
+                  className={`px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-[0.1em] transition-all duration-300 ${filter === 'all' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-50'}`}
+                >
+                  Tutti
+                </button>
+                <button 
+                  onClick={() => setFilter('mine')}
+                  className={`px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-[0.1em] transition-all duration-300 ${filter === 'mine' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-50'}`}
+                >
+                  Miei
+                </button>
+              </div>
+
+              {/* Ordinamento */}
+              <div className="flex items-center gap-2 bg-white p-1.5 rounded-[1.5rem] border border-slate-100 shadow-sm">
+                <select 
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as SortField)}
+                  className="bg-transparent text-[10px] font-black uppercase tracking-widest text-slate-600 outline-none px-4 py-2 cursor-pointer"
+                >
+                  <option value="createdAt">Data</option>
+                  <option value="title">Titolo</option>
+                  <option value="author">Autore</option>
+                </select>
+                <button 
+                  onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                  className="p-2.5 bg-slate-50 hover:bg-indigo-50 text-slate-400 hover:text-indigo-600 rounded-xl transition-all duration-300"
+                  title={sortOrder === 'asc' ? 'Ordine Crescente' : 'Ordine Decrescente'}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 transition-transform duration-500 ${sortOrder === 'desc' ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M5.293 7.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L6.707 7.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                  </svg>
+                </button>
+              </div>
+
               <button 
-                onClick={() => setFilter('all')}
-                className={`flex-1 sm:flex-none px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-[0.1em] transition-all duration-500 ${filter === 'all' ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-200 translate-y-[-2px]' : 'text-slate-400 hover:bg-slate-50'}`}
+                onClick={() => setShowAddForm(true)}
+                className="group flex items-center justify-center gap-3 bg-indigo-600 text-white px-8 py-4 rounded-[1.5rem] font-black text-xs uppercase tracking-widest hover:bg-slate-900 transition-all duration-500 shadow-xl shadow-indigo-100 hover:shadow-slate-200 active:scale-95"
               >
-                Tutta la Rete
-              </button>
-              <button 
-                onClick={() => setFilter('mine')}
-                className={`flex-1 sm:flex-none px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-[0.1em] transition-all duration-500 ${filter === 'mine' ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-200 translate-y-[-2px]' : 'text-slate-400 hover:bg-slate-50'}`}
-              >
-                I Miei Volumi
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 group-hover:rotate-90 transition-transform duration-500" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                </svg>
+                Nuovo Libro
               </button>
             </div>
-            
-            <button 
-              onClick={() => setShowAddForm(true)}
-              className="group w-full sm:w-auto flex items-center justify-center gap-3 bg-slate-900 text-white px-10 py-4 rounded-[1.5rem] font-black text-sm uppercase tracking-widest hover:bg-indigo-600 transition-all duration-500 shadow-2xl shadow-slate-200 hover:shadow-indigo-200 active:scale-95"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 group-hover:rotate-90 transition-transform duration-500" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
-              </svg>
-              Aggiungi Ora
-            </button>
           </div>
         </div>
 
         {/* Dynamic Grid */}
-        {filteredBooks.length > 0 ? (
+        {processedBooks.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-10">
-            {filteredBooks.map((book, index) => (
-              <div key={book.id} style={{ animationDelay: `${index * 100}ms` }} className="animate-in fade-in slide-in-from-bottom-8 duration-700 fill-mode-both">
+            {processedBooks.map((book, index) => (
+              <div key={book.id} style={{ animationDelay: `${index * 50}ms` }} className="animate-in fade-in slide-in-from-bottom-8 duration-700 fill-mode-both">
                 <BookCard 
                   book={book} 
                   onDelete={deleteBook}
                   onEdit={startEditing}
+                  onSelect={setSelectedBook}
                   showActions={book.userId === user.id}
                 />
               </div>
@@ -228,6 +282,13 @@ const App: React.FC = () => {
             setEditingBook(null);
           }} 
           editBook={editingBook}
+        />
+      )}
+
+      {selectedBook && (
+        <BookDetail 
+          book={selectedBook} 
+          onClose={() => setSelectedBook(null)} 
         />
       )}
     </div>

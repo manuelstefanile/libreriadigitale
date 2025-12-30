@@ -6,10 +6,11 @@ interface BookCardProps {
   book: Book;
   onDelete?: (id: string) => void;
   onEdit?: (book: Book) => void;
+  onSelect?: (book: Book) => void;
   showActions?: boolean;
 }
 
-const BookCard: React.FC<BookCardProps> = ({ book, onDelete, onEdit, showActions = false }) => {
+const BookCard: React.FC<BookCardProps> = ({ book, onDelete, onEdit, onSelect, showActions = false }) => {
   const getStatusStyle = (status: BookStatus) => {
     switch (status) {
       case BookStatus.READING: return 'bg-blue-500/10 text-blue-600 border-blue-200';
@@ -19,8 +20,19 @@ const BookCard: React.FC<BookCardProps> = ({ book, onDelete, onEdit, showActions
     }
   };
 
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Evita di aprire il dettaglio se clicchiamo sui pulsanti di azione
+    const target = e.target as HTMLElement;
+    if (target.closest('button')) return;
+    
+    onSelect?.(book);
+  };
+
   return (
-    <div className="group relative bg-white rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-[0_20px_50px_rgba(79,70,229,0.15)] hover:-translate-y-2 transition-all duration-500 ease-out flex flex-col h-full overflow-hidden">
+    <div 
+      onClick={handleCardClick}
+      className="group relative bg-white rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-[0_20px_50px_rgba(79,70,229,0.15)] hover:-translate-y-2 transition-all duration-500 ease-out flex flex-col h-full overflow-hidden cursor-pointer"
+    >
       {/* Immagine con Overlay Intelligente */}
       <div className="relative aspect-[3/4] overflow-hidden m-2 rounded-[1.5rem] bg-slate-50">
         <img 
