@@ -3,6 +3,10 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import mysql from 'mysql2/promise';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -13,60 +17,89 @@ const PORT = process.env.PORT || 8080;
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
-// Database in memoria (si azzera ad ogni riavvio del container)
-let books = [];
+// Configurazione Database
+const pool = mysql.createPool({
+  host: process.env.DB_HOST || '127.0.0.1',
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
+});
 
-// Middleware di logging globale per le API
+// Middleware di logging
 app.use('/api', (req, res, next) => {
-  console.log(`[API CALL] ${new Date().toISOString()} - ${req.method} ${req.path}`);
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
   next();
 });
 
-// --- ENDPOINT API ---
+// --- ENDPOINT RICHIESTO: VERIFICA CONNESSIONE ---
 
-app.get('/api/health', (req, res) => {
-  console.log('-> Rispondo a Health Check: Server Vivo');
-  res.json({ status: 'ok', message: 'Benvenuto nelle API di BiblioTech!' });
+app.get('/api/health', async (req, res) => {
+  console.log('-> Controllo stato sistema e database...');
+  let dbStatus = 'error';
+  let dbError = null;
+
+  try {
+    // Eseguiamo una query ultra-leggera per testare la connessione
+    const connection = await pool.getConnection();
+    await connection.query('SELECT 1');
+    connection.release();
+    dbStatus = 'ok';
+    console.log('✅ Database connesso correttamente.');
+  } catch (err) {
+    dbError = err.message;
+    console.error('❌ Errore connessione Database:', err.message);
+  }
+
+  res.json({ 
+    status: 'ok', 
+    database: dbStatus,
+    error: dbError,
+    timestamp: new Date().toISOString()
+  });
 });
+
+// --- ALTRI ENDPOINT API (Esempio CRUD) ---
 
 app.post('/api/auth/login', (req, res) => {
-  console.log(`-> Login ricevuto per: ${req.body.email}`);
   res.json({ id: 'user-123', username: 'Ospite', email: req.body.email });
 });
 
-app.post('/api/auth/register', (req, res) => {
-  console.log(`-> Registrazione per: ${req.body.email}`);
-  res.json({ id: 'user-123', username: 'Ospite', email: req.body.email });
+app.get('/api/books', async (req, res) => {
+  try {
+    // Se la tabella non esiste, questo fallirà - gestito con try/catch
+    const [rows] = await pool.query('SELECT * FROM books ORDER BY createdAt DESC');
+    res.json(rows);
+  } catch (err) {
+    // Se il DB non è ancora pronto o la tabella manca, restituiamo un array vuoto
+    res.json([]);
+  }
 });
 
-app.get('/api/books', (req, res) => {
-  console.log(`-> Restituisco ${books.length} libri`);
-  res.json(books);
+app.post('/api/books', async (req, res) => {
+  const b = req.body;
+  try {
+    await pool.query(
+      'INSERT INTO books (id, title, author, description, status, userId, coverUrl, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [b.id, b.title, b.author, b.description, b.status, b.userId, b.coverUrl, Date.now()]
+    );
+    res.status(201).json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-app.post('/api/books', (req, res) => {
-  console.log(`-> Aggiunta nuovo libro: ${req.body.title}`);
-  const newBook = { ...req.body, createdAt: Date.now() };
-  books.push(newBook);
-  res.status(201).json({ success: true, book: newBook });
-});
-
-app.delete('/api/books/:id', (req, res) => {
-  console.log(`-> Eliminazione libro ID: ${req.params.id}`);
-  books = books.filter(b => b.id !== req.params.id);
-  res.json({ success: true });
-});
-
-// --- SERVING FRONTEND (Dalla cartella /dist generata da Vite) ---
+// --- SERVING FRONTEND ---
 
 const distPath = path.join(__dirname, 'dist');
 app.use(express.static(distPath));
 
-// Qualsiasi altra rotta serve l'index.html (SPA)
 app.get('*', (req, res) => {
   res.sendFile(path.join(distPath, 'index.html'), (err) => {
     if (err) {
-      res.status(200).send('<h1>Server BiblioTech Attivo</h1><p>Le API sono pronte su /api. Esegui "npm run build" per caricare il frontend qui.</p>');
+      res.status(200).send('<h1>Server BiblioTech Attivo</h1><p>Verifica database su /api/health</p>');
     }
   });
 });
@@ -75,6 +108,6 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log('=========================================');
   console.log(`🚀 BIBLIOTECH SERVER ONLINE`);
   console.log(`📍 Porta: ${PORT}`);
-  console.log(`🔗 API: http://localhost:${PORT}/api/health`);
+  console.log(`🔗 Health Check: http://localhost:${PORT}/api/health`);
   console.log('=========================================');
 });
