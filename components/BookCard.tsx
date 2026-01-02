@@ -17,8 +17,6 @@ const BookCard: React.FC<BookCardProps> = ({ book, onDelete, onEdit, onSelect, s
         return { label: 'In Lettura', bg: 'bg-sky-50', border: 'border-sky-100', text: 'text-sky-700' };
       case BookStatus.COMPLETED: 
         return { label: 'Completato', bg: 'bg-emerald-50', border: 'border-emerald-100', text: 'text-emerald-700' };
-      case BookStatus.PUBLISHED: 
-        return { label: 'Pubblicato', bg: 'bg-violet-50', border: 'border-violet-100', text: 'text-violet-700' };
       default: 
         return { label: 'Wishlist', bg: 'bg-slate-50', border: 'border-slate-200', text: 'text-slate-600' };
     }

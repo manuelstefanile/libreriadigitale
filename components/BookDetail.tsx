@@ -20,7 +20,6 @@ const BookDetail: React.FC<BookDetailProps> = ({ book, onClose }) => {
     switch (status) {
       case BookStatus.READING: return 'bg-blue-600 text-white';
       case BookStatus.COMPLETED: return 'bg-emerald-600 text-white';
-      case BookStatus.PUBLISHED: return 'bg-indigo-600 text-white';
       default: return 'bg-slate-600 text-white';
     }
   };
@@ -32,7 +31,6 @@ const BookDetail: React.FC<BookDetailProps> = ({ book, onClose }) => {
         onClick={onClose}
       ></div>
 
-      {/* h-[92dvh] garantisce che il modale si adatti perfettamente allo schermo mobile dinamico */}
       <div className="relative bg-white w-full h-[92dvh] sm:h-auto sm:max-h-[85dvh] sm:max-w-4xl rounded-t-[2.5rem] sm:rounded-[2.5rem] overflow-hidden shadow-2xl flex flex-col md:flex-row animate-in slide-in-from-bottom-full sm:slide-in-from-bottom-10 duration-500 ease-out">
         
         <button 

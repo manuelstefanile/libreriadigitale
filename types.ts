@@ -2,7 +2,6 @@
 export enum BookStatus {
   READING = 'In Lettura',
   COMPLETED = 'Completato',
-  PUBLISHED = 'Pubblicato',
   WISH_LIST = 'Lista dei Desideri'
 }
 
