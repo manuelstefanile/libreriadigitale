@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { BookStatus, Book } from '../types';
 
@@ -10,30 +11,12 @@ interface BookFormProps {
 }
 
 const BookForm: React.FC<BookFormProps> = ({ userId, onAdd, onUpdate, onClose, editBook }) => {
-  const [title, setTitle] = useState('');
-  const [author, setAuthor] = useState('');
-  const [description, setDescription] = useState('');
-  const [status, setStatus] = useState<BookStatus>(BookStatus.READING);
-  const [coverUrl, setCoverUrl] = useState('');
+  const [title, setTitle] = useState(editBook?.title || '');
+  const [author, setAuthor] = useState(editBook?.author || '');
+  const [description, setDescription] = useState(editBook?.description || '');
+  const [status, setStatus] = useState<BookStatus>(editBook?.status || BookStatus.READING);
+  const [coverUrl, setCoverUrl] = useState(editBook?.coverUrl || '');
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    const originalStyle = window.getComputedStyle(document.body).overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = originalStyle;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (editBook) {
-      setTitle(editBook.title);
-      setAuthor(editBook.author);
-      setDescription(editBook.description);
-      setStatus(editBook.status);
-      setCoverUrl(editBook.coverUrl);
-    }
-  }, [editBook]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -46,96 +29,108 @@ const BookForm: React.FC<BookFormProps> = ({ userId, onAdd, onUpdate, onClose, e
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title || !author) return;
-
     const bookData: Book = {
       id: editBook ? editBook.id : Math.random().toString(36).substr(2, 9),
-      title,
-      author,
-      description,
-      status,
-      userId,
+      title, author, description, status, userId,
       coverUrl: coverUrl || `https://picsum.photos/seed/${title}/400/600`,
       createdAt: editBook ? editBook.createdAt : Date.now()
     };
-
     if (editBook) onUpdate(bookData);
     else onAdd(bookData);
   };
 
   return (
-    <div className="fixed inset-0 z-[100] bg-slate-950/80 backdrop-blur-xl flex items-end sm:items-center justify-center p-0 sm:p-6">
-      <div className="bg-white w-full h-[95vh] sm:h-auto sm:max-h-[90vh] sm:max-w-5xl rounded-t-[2.5rem] sm:rounded-[3rem] overflow-hidden shadow-2xl flex flex-col md:flex-row animate-in slide-in-from-bottom-full duration-500">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 sm:p-6">
+      <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-xl animate-in fade-in duration-500" onClick={onClose}></div>
+      
+      <div className="relative bg-white w-full h-full sm:h-auto sm:max-h-[90vh] sm:max-w-4xl rounded-none sm:rounded-[3.5rem] overflow-hidden shadow-2xl animate-in slide-in-from-bottom-10 duration-500 flex flex-col md:flex-row">
         
-        {/* Preview Immagine */}
-        <div className="h-[25vh] md:h-auto md:w-[35%] bg-slate-900 relative p-6 flex flex-col items-center justify-center flex-shrink-0">
+        {/* Sidebar Preview */}
+        <div className="md:w-[40%] bg-slate-900 p-10 flex flex-col items-center justify-center relative overflow-hidden">
+          <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-indigo-500 via-transparent to-transparent"></div>
+          
           <div 
             onClick={() => fileInputRef.current?.click()}
-            className="relative aspect-[3/4] h-full sm:h-auto sm:w-full max-w-[200px] bg-white/5 rounded-[1.5rem] border-2 border-dashed border-white/10 flex items-center justify-center cursor-pointer overflow-hidden group"
+            className="relative aspect-[3/4] w-full max-w-[240px] bg-white/5 rounded-[2.5rem] border-2 border-dashed border-white/20 flex items-center justify-center cursor-pointer overflow-hidden group hover:border-indigo-500/50 transition-all z-10"
           >
             {coverUrl ? (
               <img src={coverUrl} alt="Preview" className="w-full h-full object-cover" />
             ) : (
-              <span className="text-white/40 text-[10px] font-black uppercase tracking-widest text-center px-4">Carica Copertina</span>
+              <div className="text-center p-6">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-white/20 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <span className="text-[10px] font-black uppercase tracking-widest text-white/40">Carica Copertina</span>
+              </div>
             )}
             <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
           </div>
+          <p className="mt-8 text-white/30 text-[9px] font-black uppercase tracking-[0.3em] z-10">Anteprima Libro</p>
         </div>
 
-        {/* Form Editor */}
-        <div className="flex-1 p-6 sm:p-10 overflow-y-auto custom-scrollbar flex flex-col">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 font-serif">
-              {editBook ? 'Modifica Libro' : 'Nuovo Volume'}
+        {/* Form Content */}
+        <div className="flex-1 p-10 sm:p-14 overflow-y-auto bg-white flex flex-col">
+          <div className="flex justify-between items-center mb-10">
+            <h2 className="text-4xl font-black text-slate-900 font-serif tracking-tighter">
+              {editBook ? 'Aggiorna Volume' : 'Nuovo Ingresso'}
             </h2>
-            <button onClick={onClose} className="p-2 bg-slate-50 rounded-full text-slate-400 hover:rotate-90 transition-transform">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <button onClick={onClose} className="p-3 bg-slate-50 text-slate-400 hover:text-slate-900 rounded-2xl transition-all">
+               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6 flex-1">
-            <div className="grid grid-cols-1 gap-6">
-              <div>
-                <label className="block text-[10px] font-black text-slate-400 uppercase mb-2">Titolo</label>
+          <form onSubmit={handleSubmit} className="space-y-8 flex-1">
+            <div className="space-y-6">
+              <div className="group">
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3 group-focus-within:text-indigo-600 transition-colors">Titolo Opera</label>
                 <input 
                   type="text" required value={title} onChange={(e) => setTitle(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-50 border-none outline-none focus:ring-2 focus:ring-indigo-500 font-bold"
-                  placeholder="Inserisci titolo..."
+                  className="w-full bg-slate-50 border-none rounded-[1.2rem] px-6 py-4 font-bold text-slate-900 focus:ring-4 focus:ring-indigo-500/10 transition-all outline-none"
+                  placeholder="Esempio: Il Nome della Rosa"
                 />
               </div>
-              <div>
-                <label className="block text-[10px] font-black text-slate-400 uppercase mb-2">Autore</label>
+
+              <div className="group">
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3 group-focus-within:text-indigo-600 transition-colors">Autore</label>
                 <input 
                   type="text" required value={author} onChange={(e) => setAuthor(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-50 border-none outline-none focus:ring-2 focus:ring-indigo-500 font-bold"
-                  placeholder="Inserisci autore..."
+                  className="w-full bg-slate-50 border-none rounded-[1.2rem] px-6 py-4 font-bold text-slate-900 focus:ring-4 focus:ring-indigo-500/10 transition-all outline-none"
+                  placeholder="Umberto Eco"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Stato Lettura</label>
+                <div className="grid grid-cols-2 gap-3">
+                   {Object.values(BookStatus).map(s => (
+                     <button 
+                       key={s} type="button" onClick={() => setStatus(s)}
+                       className={`py-3 px-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border ${status === s ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg' : 'bg-white border-slate-100 text-slate-400 hover:border-indigo-200'}`}
+                     >
+                       {s}
+                     </button>
+                   ))}
+                </div>
+              </div>
+
+              <div className="group">
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3 group-focus-within:text-indigo-600 transition-colors">Sinossi</label>
+                <textarea 
+                  value={description} onChange={(e) => setDescription(e.target.value)} rows={3}
+                  className="w-full bg-slate-50 border-none rounded-[1.2rem] px-6 py-4 font-medium text-slate-600 focus:ring-4 focus:ring-indigo-500/10 transition-all outline-none resize-none"
+                  placeholder="Descrivi brevemente l'opera..."
                 />
               </div>
             </div>
 
-            <div>
-              <label className="block text-[10px] font-black text-slate-400 uppercase mb-2">Sinossi</label>
-              <textarea 
-                value={description} onChange={(e) => setDescription(e.target.value)} rows={4}
-                className="w-full px-4 py-3 rounded-xl bg-slate-50 border-none outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-                placeholder="Inserisci una breve trama o i tuoi pensieri sul libro..."
-              />
-            </div>
-
-            <div className="pt-4">
-              <button type="submit" className="w-full bg-slate-900 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-slate-200 hover:bg-indigo-600 transition-colors">
-                Salva Volume
-              </button>
-            </div>
+            <button type="submit" className="w-full bg-slate-900 text-white py-5 rounded-[1.8rem] font-black text-xs uppercase tracking-[0.3em] shadow-2xl shadow-slate-200 hover:bg-indigo-600 active:scale-95 transition-all mt-6">
+              Salva nel Database
+            </button>
           </form>
         </div>
       </div>
-      <style>{`
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
-      `}</style>
     </div>
   );
 };

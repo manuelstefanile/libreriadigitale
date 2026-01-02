@@ -30,16 +30,13 @@ const App: React.FC = () => {
       const health = await storageService.checkHealth();
       setServerStatus(health?.status === 'ok' ? 'online' : 'offline');
     };
-    
     verifyConnection();
-    const interval = setInterval(verifyConnection, 10000); // Più frequente per test
+    const interval = setInterval(verifyConnection, 30000);
     return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
-    if (user) {
-      loadBooks();
-    }
+    if (user) loadBooks();
   }, [user]);
 
   const loadBooks = async () => {
@@ -49,39 +46,14 @@ const App: React.FC = () => {
     setIsLoading(false);
   };
 
-  const handleLogout = () => {
-    setUser(null);
-  };
-
-  const addBook = async (newBook: Book) => {
-    const success = await storageService.saveBook(newBook);
-    if (success) {
-      loadBooks();
-      setShowAddForm(false);
-    }
-  };
-
-  const updateBook = async (updatedBook: Book) => {
-    const success = await storageService.updateBook(updatedBook);
-    if (success) {
-      loadBooks();
-      setEditingBook(null);
-      if (selectedBook?.id === updatedBook.id) setSelectedBook(updatedBook);
-    }
-  };
-
   const deleteBook = async (id: string) => {
-    if (confirm("Rimuovere questo libro dal server?")) {
+    if (confirm("Eliminare definitivamente questo libro?")) {
       const success = await storageService.deleteBook(id);
       if (success) {
         setBooks(prev => prev.filter(b => b.id !== id));
         if (selectedBook?.id === id) setSelectedBook(null);
       }
     }
-  };
-
-  const startEditing = (book: Book) => {
-    setEditingBook(book);
   };
 
   const processedBooks = useMemo(() => {
@@ -93,173 +65,132 @@ const App: React.FC = () => {
     });
 
     result.sort((a, b) => {
-      let comparison = 0;
-      if (sortBy === 'createdAt') {
-        comparison = Number(a.createdAt) - Number(b.createdAt);
-      } else {
-        comparison = a[sortBy].localeCompare(b[sortBy], 'it', { sensitivity: 'base' });
-      }
-      return sortOrder === 'asc' ? comparison : -comparison;
+      let comp = 0;
+      if (sortBy === 'createdAt') comp = Number(a.createdAt) - Number(b.createdAt);
+      else comp = a[sortBy].localeCompare(b[sortBy], 'it');
+      return sortOrder === 'asc' ? comp : -comp;
     });
-
     return result;
   }, [books, filter, user, searchQuery, sortBy, sortOrder]);
 
-  if (!user) {
-    return <AuthForm onAuthSuccess={setUser} />;
-  }
+  if (!user) return <AuthForm onAuthSuccess={setUser} />;
 
   return (
-    <div className="min-h-screen-dynamic bg-[#fcfdfe] flex flex-col font-sans text-slate-900 selection:bg-indigo-100 selection:text-indigo-900 overflow-x-hidden">
-      <header className="bg-white/70 backdrop-blur-xl border-b border-slate-100 sticky top-0 z-40 transition-all duration-300">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16 sm:h-24">
-            <div className="flex items-center gap-4 group cursor-pointer" onClick={loadBooks}>
-              <div className="bg-gradient-to-tr from-indigo-600 to-violet-600 p-2 sm:p-3 rounded-xl sm:rounded-[1.2rem] text-white shadow-lg shadow-indigo-100 group-hover:rotate-12 transition-transform duration-500">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 sm:h-6 sm:w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-                </svg>
-              </div>
-              <div className="flex flex-col">
-                <h1 className="text-xl sm:text-2xl font-black tracking-tighter font-serif block bg-clip-text text-transparent bg-gradient-to-r from-slate-900 via-indigo-900 to-slate-800 leading-none">BiblioTech</h1>
-                <div className="flex items-center gap-1.5 mt-1">
-                  <div className={`w-1.5 h-1.5 rounded-full ${
-                    serverStatus === 'online' ? 'bg-emerald-500 animate-pulse' : 
-                    serverStatus === 'offline' ? 'bg-red-500' : 'bg-blue-500'
-                  }`}></div>
-                  <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">
-                    {serverStatus === 'online' ? 'Server Online' : 
-                     serverStatus === 'offline' ? 'Server Offline' : 'Verifica...'}
-                  </span>
-                </div>
+    <div className="min-h-screen bg-[#fcfdfe] flex flex-col font-sans text-slate-900 selection:bg-indigo-100 selection:text-indigo-900">
+      {/* Header Premium */}
+      <header className="fixed top-0 inset-x-0 z-50 bg-white/70 backdrop-blur-2xl border-b border-slate-100">
+        <div className="max-w-7xl mx-auto px-6 h-20 sm:h-24 flex justify-between items-center">
+          <div className="flex items-center gap-5">
+            <div className="w-12 h-12 bg-indigo-600 rounded-[1.2rem] flex items-center justify-center text-white shadow-xl shadow-indigo-100">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+              </svg>
+            </div>
+            <div>
+              <h1 className="text-2xl font-black font-serif tracking-tighter text-slate-900">BiblioTech</h1>
+              <div className="flex items-center gap-2">
+                 <div className={`w-1.5 h-1.5 rounded-full ${serverStatus === 'online' ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`}></div>
+                 <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Database Cloud</span>
               </div>
             </div>
+          </div>
 
-            <div className="flex-1 max-w-xl mx-4 sm:mx-10 hidden md:block">
-              <div className="relative group">
-                <span className="absolute inset-y-0 left-0 pl-5 flex items-center text-slate-400 group-focus-within:text-indigo-600 transition-colors">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
-                  </svg>
-                </span>
-                <input 
-                  type="text" 
-                  placeholder="Cerca nella libreria..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="block w-full pl-14 pr-6 py-3 border-none rounded-2xl bg-slate-100/50 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 outline-none text-sm font-medium transition-all"
-                />
-              </div>
+          <div className="flex-1 max-w-md mx-10 hidden md:block">
+            <div className="relative">
+              <input 
+                type="text" placeholder="Cerca tra i tuoi tesori..."
+                value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-slate-100/50 border-none rounded-2xl py-3 pl-12 pr-4 text-sm font-bold focus:ring-4 focus:ring-indigo-500/10 focus:bg-white transition-all outline-none"
+              />
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
+              </svg>
             </div>
+          </div>
 
-            <div className="flex items-center gap-3 sm:gap-5">
-              <div className="hidden sm:flex flex-col items-end">
-                <span className="text-sm font-black text-slate-900 leading-none mb-1">{user.username}</span>
-                <span className="text-[9px] text-indigo-500 font-black uppercase tracking-[0.2em]">Modalità Test</span>
-              </div>
-              <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl sm:rounded-2xl bg-indigo-50 p-0.5 border-2 border-white shadow-md overflow-hidden flex items-center justify-center">
-                 <img src={`https://ui-avatars.com/api/?name=${user.username}&background=6366f1&color=fff&bold=true`} alt="Avatar" className="rounded-lg sm:rounded-[0.8rem]" />
-              </div>
-              <button 
-                onClick={handleLogout}
-                className="p-2 sm:p-3 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all duration-300"
-                title="Logout"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                </svg>
-              </button>
+          <div className="flex items-center gap-6">
+            <div className="hidden sm:block text-right">
+              <p className="text-xs font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Benvenuto</p>
+              <p className="text-sm font-bold text-slate-900">{user.username}</p>
             </div>
+            <button 
+              onClick={() => setUser(null)}
+              className="p-3 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M17 16l4-4m0 0l-4-4m4 4H7" />
+              </svg>
+            </button>
           </div>
         </div>
       </header>
 
-      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 w-full animate-in fade-in slide-in-from-bottom-4 duration-700">
-        {serverStatus === 'offline' && (
-          <div className="mb-8 p-4 bg-red-50 border border-red-100 rounded-3xl flex items-center gap-4 animate-bounce">
-            <div className="p-2 bg-red-500 text-white rounded-xl shadow-lg shadow-red-100">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-            </div>
-            <div>
-              <h4 className="text-sm font-black text-red-900 uppercase tracking-tight">Backend Non Raggiungibile</h4>
-              <p className="text-xs text-red-600 font-medium">Controlla se il server node è in esecuzione.</p>
-            </div>
-          </div>
-        )}
-
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 sm:gap-8 mb-10 sm:mb-16">
-          <div className="max-w-2xl">
-            <h2 className="text-3xl sm:text-5xl font-black text-slate-900 font-serif leading-tight mb-3">
-              Libreria <span className="text-indigo-600 italic">Light</span>
+      {/* Main Content */}
+      <main className="flex-1 max-w-7xl mx-auto px-6 pt-32 pb-20 w-full animate-in fade-in duration-1000">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-8 mb-16">
+          <div className="max-w-xl">
+            <h2 className="text-5xl sm:text-7xl font-black text-slate-900 font-serif leading-none tracking-tighter mb-6">
+              Il tuo <span className="text-indigo-600">Universo</span> Letterario
             </h2>
-            <p className="text-sm sm:text-lg text-slate-500 font-medium leading-relaxed">
-              Il server è attivo e risponde. I dati sono salvati nella RAM del server per questo test.
+            <p className="text-slate-500 font-medium text-lg leading-relaxed">
+              Esplora, gestisci e arricchisci la tua collezione personale. Ogni libro è una porta aperta verso mondi inesplorati.
             </p>
           </div>
           
-          <div className="flex flex-col items-center gap-4 sm:gap-6 w-full lg:w-auto">
-            <div className="flex flex-wrap items-center gap-3 w-full justify-start sm:justify-center lg:justify-end">
-              <div className="bg-white p-1 rounded-2xl border border-slate-100 flex gap-0.5 shadow-sm">
-                <button onClick={() => setFilter('all')} className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all ${filter === 'all' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-400 hover:bg-slate-50'}`}>Tutti</button>
-                <button onClick={() => setFilter('mine')} className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all ${filter === 'mine' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-400 hover:bg-slate-50'}`}>Miei</button>
-              </div>
-
-              <div className="flex items-center gap-1 bg-white p-1 rounded-2xl border border-slate-100 shadow-sm">
-                <select value={sortBy} onChange={(e) => setSortBy(e.target.value as SortField)} className="bg-transparent text-[9px] font-black uppercase tracking-widest text-slate-600 outline-none px-3 py-1.5 cursor-pointer">
-                  <option value="createdAt">Data</option>
-                  <option value="title">Titolo</option>
-                  <option value="author">Autore</option>
-                </select>
-                <button onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')} className="p-1.5 bg-slate-50 hover:bg-indigo-50 text-slate-400 hover:text-indigo-600 rounded-lg">
-                  <svg xmlns="http://www.w3.org/2000/svg" className={`h-3 w-3 transition-transform ${sortOrder === 'desc' ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M5.293 7.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L6.707 7.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                  </svg>
-                </button>
-              </div>
-
-              <button onClick={() => setShowAddForm(true)} className="flex items-center justify-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-900 transition-all shadow-lg active:scale-95">Nuovo Libro</button>
-            </div>
+          <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
+             <div className="flex bg-slate-100 p-1 rounded-2xl border border-slate-200 shadow-inner">
+                <button onClick={() => setFilter('all')} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${filter === 'all' ? 'bg-white text-indigo-600 shadow-md' : 'text-slate-400 hover:text-slate-600'}`}>Tutti</button>
+                <button onClick={() => setFilter('mine')} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${filter === 'mine' ? 'bg-white text-indigo-600 shadow-md' : 'text-slate-400 hover:text-slate-600'}`}>Miei</button>
+             </div>
+             
+             <button 
+                onClick={() => setShowAddForm(true)}
+                className="bg-indigo-600 text-white px-8 py-4 rounded-[1.5rem] font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-indigo-100 hover:bg-slate-900 active:scale-95 transition-all"
+             >
+               Nuovo Volume
+             </button>
           </div>
         </div>
 
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-40">
-            <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-            <p className="mt-4 text-slate-400 font-bold uppercase text-[10px] tracking-widest">Interrogazione API...</p>
+            <div className="w-16 h-16 border-4 border-indigo-600/10 border-t-indigo-600 rounded-full animate-spin mb-6"></div>
+            <p className="text-xs font-black uppercase tracking-[0.3em] text-slate-400">Sincronizzazione in corso...</p>
           </div>
         ) : processedBooks.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-10">
-            {processedBooks.map((book, index) => (
-              <div key={book.id} style={{ animationDelay: `${index * 50}ms` }} className="animate-in fade-in slide-in-from-bottom-8 duration-700 fill-mode-both">
-                <BookCard book={book} onDelete={deleteBook} onEdit={startEditing} onSelect={setSelectedBook} showActions={book.userId === user.id} />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-10">
+            {processedBooks.map((book, idx) => (
+              <div key={book.id} className="animate-in fade-in slide-in-from-bottom-10 duration-700" style={{ animationDelay: `${idx * 100}ms` }}>
+                <BookCard 
+                  book={book} 
+                  onDelete={deleteBook} 
+                  onEdit={setEditingBook} 
+                  onSelect={setSelectedBook} 
+                  showActions={book.userId === user.id} 
+                />
               </div>
             ))}
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center py-24 sm:py-40 text-center bg-white rounded-[2rem] sm:rounded-[3rem] border-2 border-dashed border-slate-100 px-8">
-            <h3 className="text-2xl sm:text-3xl font-black text-slate-800 tracking-tight">Nessun dato</h3>
-            <p className="text-sm sm:text-lg text-slate-400 max-w-md mt-4 font-medium leading-relaxed">Il server è pronto. Prova ad aggiungere un libro per testare le API.</p>
-            <button onClick={() => setShowAddForm(true)} className="mt-8 bg-indigo-600 text-white px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl">Inizia ora</button>
+          <div className="bg-white rounded-[4rem] p-20 text-center border-2 border-dashed border-slate-100">
+            <h3 className="text-4xl font-black text-slate-900 font-serif mb-4">Lo scaffale è vuoto</h3>
+            <p className="text-slate-400 text-lg mb-10 max-w-sm mx-auto">È arrivato il momento di aggiungere il tuo primo capolavoro alla libreria.</p>
+            <button onClick={() => setShowAddForm(true)} className="bg-slate-900 text-white px-12 py-5 rounded-3xl font-black text-xs uppercase tracking-widest hover:bg-indigo-600 transition-all">Aggiungi ora</button>
           </div>
         )}
       </main>
 
-      <footer className="bg-slate-50 border-t border-slate-100 py-10 sm:py-16 mt-10">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col items-center">
-          <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.3em] text-center">© 2025 BiblioTech API Test Mode.</p>
-        </div>
-      </footer>
-
       {(showAddForm || editingBook) && (
-        <BookForm userId={user.id} onAdd={addBook} onUpdate={updateBook} onClose={() => { setShowAddForm(false); setEditingBook(null); }} editBook={editingBook} />
+        <BookForm 
+          userId={user.id} 
+          onAdd={async (b) => { await storageService.saveBook(b); loadBooks(); setShowAddForm(false); }} 
+          onUpdate={async (b) => { await storageService.updateBook(b); loadBooks(); setEditingBook(null); }} 
+          onClose={() => { setShowAddForm(false); setEditingBook(null); }} 
+          editBook={editingBook} 
+        />
       )}
 
-      {selectedBook && (
-        <BookDetail book={selectedBook} onClose={() => setSelectedBook(null)} />
-      )}
+      {selectedBook && <BookDetail book={selectedBook} onClose={() => setSelectedBook(null)} />}
     </div>
   );
 };
