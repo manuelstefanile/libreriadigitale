@@ -17,6 +17,7 @@ const BookForm: React.FC<BookFormProps> = ({ userId, onAdd, onUpdate, onClose, e
   const [status, setStatus] = useState<BookStatus>(editBook?.status || BookStatus.READING);
   const [coverUrl, setCoverUrl] = useState(editBook?.coverUrl || '');
   const [isUploading, setIsUploading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -42,6 +43,7 @@ const BookForm: React.FC<BookFormProps> = ({ userId, onAdd, onUpdate, onClose, e
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
     const bookData: Book = {
       id: editBook ? editBook.id : Math.random().toString(36).substr(2, 9),
       title, author, description, status, userId,
@@ -63,7 +65,7 @@ const BookForm: React.FC<BookFormProps> = ({ userId, onAdd, onUpdate, onClose, e
           <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-indigo-500 via-transparent to-transparent"></div>
           
           <div 
-            onClick={() => !isUploading && fileInputRef.current?.click()}
+            onClick={() => !isUploading && !isSubmitting && fileInputRef.current?.click()}
             className={`relative aspect-[3/4] w-full max-w-[140px] sm:max-w-[240px] bg-white/5 rounded-[1.5rem] sm:rounded-[2.5rem] border-2 border-dashed ${isUploading ? 'border-indigo-500 animate-pulse' : 'border-white/20'} flex items-center justify-center cursor-pointer overflow-hidden group hover:border-indigo-500/50 transition-all z-10 shadow-2xl`}
           >
             {coverUrl ? (
@@ -89,7 +91,7 @@ const BookForm: React.FC<BookFormProps> = ({ userId, onAdd, onUpdate, onClose, e
             <h2 className="text-3xl sm:text-4xl font-black text-slate-900 font-serif tracking-tighter">
               {editBook ? 'Aggiorna Opera' : 'Nuovo Ingresso'}
             </h2>
-            <button onClick={onClose} className="p-2 sm:p-3 bg-slate-50 text-slate-400 hover:text-slate-900 rounded-xl sm:rounded-2xl transition-all">
+            <button onClick={onClose} disabled={isSubmitting} className="p-2 sm:p-3 bg-slate-50 text-slate-400 hover:text-slate-900 rounded-xl sm:rounded-2xl transition-all">
                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
               </svg>
@@ -101,8 +103,8 @@ const BookForm: React.FC<BookFormProps> = ({ userId, onAdd, onUpdate, onClose, e
               <div className="group">
                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 sm:mb-3 group-focus-within:text-indigo-600 transition-colors">Titolo Opera</label>
                 <input 
-                  type="text" required value={title} onChange={(e) => setTitle(e.target.value)}
-                  className="w-full bg-slate-50 border-none rounded-[1.2rem] px-6 py-4 font-bold text-slate-900 focus:ring-4 focus:ring-indigo-500/10 transition-all outline-none"
+                  type="text" required value={title} onChange={(e) => setTitle(e.target.value)} disabled={isSubmitting}
+                  className="w-full bg-slate-50 border-none rounded-[1.2rem] px-6 py-4 font-bold text-slate-900 focus:ring-4 focus:ring-indigo-500/10 transition-all outline-none disabled:opacity-50"
                   placeholder="Esempio: Il Nome della Rosa"
                 />
               </div>
@@ -110,8 +112,8 @@ const BookForm: React.FC<BookFormProps> = ({ userId, onAdd, onUpdate, onClose, e
               <div className="group">
                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 sm:mb-3 group-focus-within:text-indigo-600 transition-colors">Autore</label>
                 <input 
-                  type="text" required value={author} onChange={(e) => setAuthor(e.target.value)}
-                  className="w-full bg-slate-50 border-none rounded-[1.2rem] px-6 py-4 font-bold text-slate-900 focus:ring-4 focus:ring-indigo-500/10 transition-all outline-none"
+                  type="text" required value={author} onChange={(e) => setAuthor(e.target.value)} disabled={isSubmitting}
+                  className="w-full bg-slate-50 border-none rounded-[1.2rem] px-6 py-4 font-bold text-slate-900 focus:ring-4 focus:ring-indigo-500/10 transition-all outline-none disabled:opacity-50"
                   placeholder="Umberto Eco"
                 />
               </div>
@@ -121,8 +123,8 @@ const BookForm: React.FC<BookFormProps> = ({ userId, onAdd, onUpdate, onClose, e
                 <div className="grid grid-cols-2 gap-2 sm:gap-3">
                    {Object.values(BookStatus).map(s => (
                      <button 
-                       key={s} type="button" onClick={() => setStatus(s)}
-                       className={`py-2.5 sm:py-3 px-3 sm:px-4 rounded-xl sm:rounded-2xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all border ${status === s ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-100' : 'bg-white border-slate-100 text-slate-400 hover:border-indigo-200'}`}
+                       key={s} type="button" onClick={() => !isSubmitting && setStatus(s)} disabled={isSubmitting}
+                       className={`py-2.5 sm:py-3 px-3 sm:px-4 rounded-xl sm:rounded-2xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all border ${status === s ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-100' : 'bg-white border-slate-100 text-slate-400 hover:border-indigo-200'} disabled:opacity-50`}
                      >
                        {s}
                      </button>
@@ -133,15 +135,22 @@ const BookForm: React.FC<BookFormProps> = ({ userId, onAdd, onUpdate, onClose, e
               <div className="group">
                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 sm:mb-3 group-focus-within:text-indigo-600 transition-colors">Sinossi</label>
                 <textarea 
-                  value={description} onChange={(e) => setDescription(e.target.value)} rows={2}
-                  className="w-full bg-slate-50 border-none rounded-[1.2rem] px-6 py-4 font-medium text-slate-600 focus:ring-4 focus:ring-indigo-500/10 transition-all outline-none resize-none"
+                  value={description} onChange={(e) => setDescription(e.target.value)} rows={2} disabled={isSubmitting}
+                  className="w-full bg-slate-50 border-none rounded-[1.2rem] px-6 py-4 font-medium text-slate-600 focus:ring-4 focus:ring-indigo-500/10 transition-all outline-none resize-none disabled:opacity-50"
                   placeholder="Descrivi brevemente l'opera..."
                 />
               </div>
             </div>
 
-            <button type="submit" className="w-full bg-slate-900 text-white py-4 sm:py-5 rounded-[1.5rem] sm:rounded-[1.8rem] font-black text-[10px] sm:text-xs uppercase tracking-[0.3em] shadow-2xl shadow-slate-200 hover:bg-indigo-600 active:scale-95 transition-all mt-4 sm:mt-6 mb-4 md:mb-0">
-              Salva Opera
+            <button 
+              type="submit" 
+              disabled={isSubmitting}
+              className="w-full bg-slate-900 text-white py-4 sm:py-5 rounded-[1.5rem] sm:rounded-[1.8rem] font-black text-[10px] sm:text-xs uppercase tracking-[0.3em] shadow-2xl shadow-slate-200 hover:bg-indigo-600 active:scale-95 transition-all mt-4 sm:mt-6 mb-4 md:mb-0 disabled:bg-slate-400 disabled:shadow-none flex items-center justify-center gap-3"
+            >
+              {isSubmitting && (
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+              )}
+              {isSubmitting ? 'ELABORAZIONE...' : 'SALVA OPERA'}
             </button>
           </form>
         </div>
