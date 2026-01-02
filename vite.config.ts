@@ -8,7 +8,7 @@ export default defineConfig({
     strictPort: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:8080',
+        target: 'http://0.0.0.0:8080',
         changeOrigin: true,
         secure: false,
       }
@@ -18,5 +18,9 @@ export default defineConfig({
     port: 8080,
     host: true,
     strictPort: true
+  },
+  build: {
+    outDir: 'dist',
+    emptyOutDir: true
   }
 });

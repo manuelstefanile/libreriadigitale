@@ -1,13 +1,14 @@
 
 import { User, Book } from '../types';
 
-const API_URL = '/api';
+// Utilizziamo un percorso relativo per le API, così funzionano sullo stesso host/porta del deploy
+const API_BASE = '/api';
 
 export const storageService = {
-  // Auth
+  // Autenticazione
   login: async (email: string, password: string): Promise<User | null> => {
     try {
-      const response = await fetch(`${API_URL}/auth/login`, {
+      const response = await fetch(`${API_BASE}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
@@ -15,74 +16,81 @@ export const storageService = {
       if (!response.ok) return null;
       return await response.json();
     } catch (e) {
-      console.error(e);
-      return null;
+      console.error('Errore login:', e);
+      throw e;
     }
   },
 
   register: async (user: User & { password?: string }): Promise<User | null> => {
     try {
-      const response = await fetch(`${API_URL}/auth/register`, {
+      const response = await fetch(`${API_BASE}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(user)
       });
-      if (!response.ok) return null;
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || 'Errore registrazione');
+      }
       return await response.json();
     } catch (e) {
-      console.error(e);
-      return null;
+      console.error('Errore registrazione:', e);
+      throw e;
     }
   },
 
-  // Libri
+  // Operazioni sui Libri
   getBooks: async (): Promise<Book[]> => {
     try {
-      const response = await fetch(`${API_URL}/books`);
+      const response = await fetch(`${API_BASE}/books`);
       if (!response.ok) return [];
-      return await response.json();
+      const data = await response.json();
+      return data.map((b: any) => ({
+        ...b,
+        createdAt: Number(b.createdAt) // Assicuriamoci che sia un numero
+      }));
     } catch (e) {
-      console.error(e);
+      console.error('Errore recupero libri:', e);
       return [];
     }
   },
 
   saveBook: async (book: Book): Promise<boolean> => {
     try {
-      const response = await fetch(`${API_URL}/books`, {
+      const response = await fetch(`${API_BASE}/books`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(book)
       });
       return response.ok;
     } catch (e) {
-      console.error(e);
+      console.error('Errore salvataggio libro:', e);
       return false;
     }
   },
 
   updateBook: async (book: Book): Promise<boolean> => {
     try {
-      const response = await fetch(`${API_URL}/books/${book.id}`, {
+      const response = await fetch(`${API_BASE}/books/${book.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(book)
       });
       return response.ok;
     } catch (e) {
-      console.error(e);
+      console.error('Errore aggiornamento libro:', e);
       return false;
     }
   },
 
   deleteBook: async (id: string): Promise<boolean> => {
     try {
-      const response = await fetch(`${API_URL}/books/${id}`, {
+      const response = await fetch(`${API_BASE}/books/${id}`, {
         method: 'DELETE'
       });
       return response.ok;
     } catch (e) {
-      console.error(e);
+      console.error('Errore eliminazione libro:', e);
       return false;
     }
   }
