@@ -5,6 +5,21 @@ import { User, Book } from '../types';
 const API_BASE = '/api';
 
 export const storageService = {
+  // Health Check
+  checkHealth: async (): Promise<{ status: string; database: string } | null> => {
+    try {
+      const response = await fetch(`${API_BASE}/health`, {
+        // Timeout breve per non bloccare la UI
+        signal: AbortSignal.timeout(5000)
+      });
+      if (!response.ok) return null;
+      return await response.json();
+    } catch (e) {
+      console.error('Backend non raggiungibile:', e);
+      return null;
+    }
+  },
+
   // Autenticazione
   login: async (email: string, password: string): Promise<User | null> => {
     try {

@@ -8,7 +8,8 @@ export default defineConfig({
     strictPort: true,
     proxy: {
       '/api': {
-        target: 'http://0.0.0.0:8080',
+        // Reindirizza le chiamate API al backend locale durante lo sviluppo
+        target: 'http://localhost:8080',
         changeOrigin: true,
         secure: false,
       }
